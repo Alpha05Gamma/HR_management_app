@@ -12,9 +12,9 @@ class User(
     val patronymic: String,
     val birthDate: LocalDate,
     val status: String,
-    val email: String,
-    val discord: String,
-    val telegram: String,
+    var email: String,
+    var discord: String,
+    var telegram: String,
     val loginable: Boolean
 ) : Parcelable {
     constructor(parcel: Parcel) : this(

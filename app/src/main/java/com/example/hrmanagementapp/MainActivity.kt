@@ -62,11 +62,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.hrmanagementapp.TestObjects.TestStabs
-import com.example.hrmanagementapp.models.NotificationListItem
+import com.example.hrmanagementapp.TestObjects.TestStabs.generateNotificationList
+import com.example.hrmanagementapp.TestObjects.TestStabs.generateUser
+import com.example.hrmanagementapp.alertDialogs.NotificationAlertDialog
+import com.example.hrmanagementapp.alertDialogs.UserUpdateAlertDialog
+import com.example.hrmanagementapp.models.Notification
 import com.example.hrmanagementapp.models.User
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 
@@ -85,7 +88,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainActivityScreen(receivedUser)
+                    MainActivityUserScreen(receivedUser)
                 }
             }
         }
@@ -94,7 +97,7 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun MainActivityScreen(user: User) {
+fun MainActivityUserScreen(user: User) {
 
     val lContext = LocalContext.current
 
@@ -209,12 +212,13 @@ fun MainActivityScreen(user: User) {
                         lContext.startActivity(intent)
                     }
 
-                    composable("profilePreview/{user}", arguments = listOf(navArgument("user") { type = NavType.ParcelableType(User::class.java) })) { backStackEntry ->
-                        val user = backStackEntry.arguments?.getParcelable<User>("user")
-                        if (user != null) {
-                            ProfileScreen(navController, user, isEditable = false)
+                    composable("profilePreview/{userId}", arguments = listOf(navArgument("userId") { type = NavType.IntType })) { backStackEntry ->
+                        val userId = backStackEntry.arguments?.getInt("userId")
+                        if (userId != null) {
+                            ProfileScreen(navController, generateUser(userId), isEditable = false)
                         }
                     }
+
                 }
             }
         }
@@ -223,12 +227,15 @@ fun MainActivityScreen(user: User) {
 
 @Composable
 fun ProfileScreen(navController: NavHostController, user: User, isEditable: Boolean) {
+    val showDialog = remember { mutableStateOf(false) }
+    val userUpdated = remember { mutableStateOf(user) }
+
     Scaffold(
         floatingActionButton = {
             if(isEditable){
                 ExtendedFloatingActionButton(
                     onClick = {
-
+                        showDialog.value = true
                     },
                     icon = { Icon(Icons.Filled.Create, "Изменение") },
                     text = { Text(text = "Изменить") },
@@ -248,13 +255,13 @@ fun ProfileScreen(navController: NavHostController, user: User, isEditable: Bool
                 modifier = Modifier.padding(top = 50.dp)
             ) {
                 Column {
-                    Text(text = "${user.name} ${user.patronymic} ${user.surname}", fontSize = 36.sp, lineHeight = 35.sp, modifier = Modifier.padding(start = 30.dp, bottom = 15.dp))
+                    Text(text = "${userUpdated.value.name} ${userUpdated.value.patronymic} ${userUpdated.value.surname}", fontSize = 36.sp, lineHeight = 35.sp, modifier = Modifier.padding(start = 30.dp, bottom = 15.dp))
                     Row (
                         horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
                         val str2 = "M4-08-12"
 
-                        Text(text = "Статус: ${user.status}", modifier = Modifier.padding(start = 20.dp))
+                        Text(text = "Статус: ${userUpdated.value.status}", modifier = Modifier.padding(start = 20.dp))
                         Text(text = "Группа: $str2", modifier = Modifier.padding(start = 20.dp))
                     }
                     Row(
@@ -267,14 +274,25 @@ fun ProfileScreen(navController: NavHostController, user: User, isEditable: Bool
                         modifier =  Modifier.padding(start = 10.dp)
                     ){
                         Column {
-                            Text(text = "Telegramm: ${user.telegram}")
-                            Text(text = "Email: ${user.email}")
-                            Text(text = "Discord: ${user.discord}")
+                            Text(text = "Telegramm: ${userUpdated.value.telegram}")
+                            Text(text = "Email: ${userUpdated.value.email}")
+                            Text(text = "Discord: ${userUpdated.value.discord}")
                         }
                     }
                 }
             }
         }
+    }
+    if (showDialog.value){
+        UserUpdateAlertDialog(
+            user = user,
+            onUserEdited = {editedUser ->
+                userUpdated.value = editedUser
+                showDialog.value = false
+            },
+            onDismiss = { showDialog.value = false }
+        )
+
     }
 }
 
@@ -449,7 +467,13 @@ fun PersonalListScreen(navController: NavHostController) {
                             Modifier
                                 .padding(5.dp)
                                 .clickable {
-                                    navController.navigate(route = "profilePreview/$user")
+                                    navController.navigate(
+                                        route = "profilePreview/${
+                                            userList.indexOf(
+                                                user
+                                            )
+                                        }"
+                                    )
                                 }
                         ) {
                             Text(text = user.name, fontSize = 16.sp)
@@ -471,10 +495,11 @@ fun NotificationsScreen(navController: NavHostController) {
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        val notifications = listOf(
-            NotificationListItem(1, "нейм", "Оч важное уведомление, кликни что бы прочесть", "Отправитель 1", LocalDateTime.of(2024, 3, 5, 10, 30)),
-            NotificationListItem(2, "нейм", "Оч важное описание созвона", "Отправитель 1", LocalDateTime.of(2024, 3, 6, 15, 45))
-        )
+        val notifications = generateNotificationList()
+
+        val dialogState = remember { mutableStateOf(false) }
+
+        var targetNotification = remember { mutableStateOf<Notification?>(notifications[0]) }
 
         Column(
             verticalArrangement = Arrangement.Top,
@@ -499,7 +524,8 @@ fun NotificationsScreen(navController: NavHostController) {
                             Modifier
                                 .padding(5.dp)
                                 .clickable {
-
+                                    targetNotification.value = notificationListItem
+                                    dialogState.value = true
                                 }
                         ) {
                             if (notificationListItem.type == 1){
@@ -514,6 +540,13 @@ fun NotificationsScreen(navController: NavHostController) {
                         }
 
                     }
+                }
+
+                if (dialogState.value) {
+                    NotificationAlertDialog(
+                        notification = targetNotification.value!!,
+                            onDismiss = { dialogState.value = false }
+                    )
                 }
             }
         }
@@ -531,13 +564,13 @@ fun MainActivityPreview() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            MainActivityScreen(User(
+            MainActivityUserScreen(User(
                     id = 1,
                     keycloakId = 1,
                     surname = "Дубовик",
                     name = "Денис",
                     patronymic = "Алексеевич",
-                    birthDate = LocalDate.of(2005, 1, 13), // Используем LocalDate здесь
+                    birthDate = LocalDate.of(2005, 1, 13),
                     status = "Практикант",
                     discord = "Test",
                     email = "example@gmail.com",
