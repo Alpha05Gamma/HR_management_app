@@ -6,4 +6,5 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="hint_search_by_second_name">Введите фамилию для поиска</string>
     <string name="hint_search_by_user_id">Введите id для поиска</string>
+    <string name="navigate_to_profile">profile</string>
 </resources>

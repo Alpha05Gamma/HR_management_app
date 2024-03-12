@@ -59,10 +59,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.hrmanagementapp.TestObjects.TestStabs
 import com.example.hrmanagementapp.models.NotificationListItem
 import com.example.hrmanagementapp.models.User
-import com.example.hrmanagementapp.models.UserListItem
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -82,7 +85,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainActivityScreen()
+                    MainActivityScreen(receivedUser)
                 }
             }
         }
@@ -91,7 +94,8 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun MainActivityScreen() {
+fun MainActivityScreen(user: User) {
+
     val lContext = LocalContext.current
 
     val navController = rememberNavController()
@@ -196,13 +200,20 @@ fun MainActivityScreen() {
                     .fillMaxSize()
             ) {
                 NavHost(navController, startDestination = "profile") {
-                    composable("profile") { ProfileScreen(navController) }
+                    composable("profile") { ProfileScreen(navController, user, isEditable = true) }
                     composable("personalList") { PersonalListScreen(navController) }
                     composable("notifications") { NotificationsScreen(navController) }
                     composable("logOut") {
                         val intent = Intent(lContext, AuthActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
                         lContext.startActivity(intent)
+                    }
+
+                    composable("profilePreview/{user}", arguments = listOf(navArgument("user") { type = NavType.ParcelableType(User::class.java) })) { backStackEntry ->
+                        val user = backStackEntry.arguments?.getParcelable<User>("user")
+                        if (user != null) {
+                            ProfileScreen(navController, user, isEditable = false)
+                        }
                     }
                 }
             }
@@ -211,17 +222,19 @@ fun MainActivityScreen() {
 }
 
 @Composable
-fun ProfileScreen(navController: NavHostController,) {
+fun ProfileScreen(navController: NavHostController, user: User, isEditable: Boolean) {
     Scaffold(
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    
-                },
-                icon = { Icon(Icons.Filled.Create, "Изменение") },
-                text = { Text(text = "Изменить") },
-                modifier = Modifier.padding(end = 210.dp)
-            )
+            if(isEditable){
+                ExtendedFloatingActionButton(
+                    onClick = {
+
+                    },
+                    icon = { Icon(Icons.Filled.Create, "Изменение") },
+                    text = { Text(text = "Изменить") },
+                    modifier = Modifier.padding(end = 210.dp)
+                )
+            }
         }
     ) { contentPadding ->
         Column (
@@ -234,16 +247,14 @@ fun ProfileScreen(navController: NavHostController,) {
             Box(
                 modifier = Modifier.padding(top = 50.dp)
             ) {
-                val str = "Дубовик Денис Алексеевич"
                 Column {
-                    Text(text = str, fontSize = 36.sp, lineHeight = 35.sp, modifier = Modifier.padding(start = 30.dp, bottom = 15.dp))
+                    Text(text = "${user.name} ${user.patronymic} ${user.surname}", fontSize = 36.sp, lineHeight = 35.sp, modifier = Modifier.padding(start = 30.dp, bottom = 15.dp))
                     Row (
                         horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
-                        val str1 = "Практикант"
                         val str2 = "M4-08-12"
 
-                        Text(text = "Статус: $str1", modifier = Modifier.padding(start = 20.dp))
+                        Text(text = "Статус: ${user.status}", modifier = Modifier.padding(start = 20.dp))
                         Text(text = "Группа: $str2", modifier = Modifier.padding(start = 20.dp))
                     }
                     Row(
@@ -255,14 +266,10 @@ fun ProfileScreen(navController: NavHostController,) {
                     Row(
                         modifier =  Modifier.padding(start = 10.dp)
                     ){
-                        val telegram = "example"
-                        val email = "example@gamil.com"
-                        val phone = "+7 (800) 555-35-35"
-
                         Column {
-                            Text(text = "Telegramm: $telegram")
-                            Text(text = "Email: $email")
-                            Text(text = "Номер телефона: $phone")
+                            Text(text = "Telegramm: ${user.telegram}")
+                            Text(text = "Email: ${user.email}")
+                            Text(text = "Discord: ${user.discord}")
                         }
                     }
                 }
@@ -279,13 +286,8 @@ fun PersonalListScreen(navController: NavHostController) {
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        val userList = listOf(
-            UserListItem("John", "Online"),
-            UserListItem("Alice", "Offline"),
-            UserListItem("Bob", "Away"),
-            UserListItem("Emma", "Busy"),
-            UserListItem("Mike", "Do Not Disturb")
-        )
+        val userList = TestStabs.generateUserList()
+
         
         Column(
             verticalArrangement = Arrangement.Top,
@@ -441,17 +443,17 @@ fun PersonalListScreen(navController: NavHostController) {
                 ){
 
                 LazyColumn {
-                    items(userList){ userListItem ->
+                    items(userList){ user ->
 
                         Column(
                             Modifier
                                 .padding(5.dp)
                                 .clickable {
-                                    navController.navigate("profile")
+                                    navController.navigate(route = "profilePreview/$user")
                                 }
                         ) {
-                            Text(text = userListItem.name, fontSize = 16.sp)
-                            Text(text = userListItem.status, fontSize = 14.sp, color = Color.LightGray)
+                            Text(text = user.name, fontSize = 16.sp)
+                            Text(text = user.status, fontSize = 14.sp, color = Color.LightGray)
                         }
 
                     }
@@ -497,12 +499,7 @@ fun NotificationsScreen(navController: NavHostController) {
                             Modifier
                                 .padding(5.dp)
                                 .clickable {
-                                    if (notificationListItem.type == 1){
 
-                                    }
-                                    else{
-
-                                    }
                                 }
                         ) {
                             if (notificationListItem.type == 1){
@@ -534,7 +531,20 @@ fun MainActivityPreview() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            MainActivityScreen()
+            MainActivityScreen(User(
+                    id = 1,
+                    keycloakId = 1,
+                    surname = "Дубовик",
+                    name = "Денис",
+                    patronymic = "Алексеевич",
+                    birthDate = LocalDate.of(2005, 1, 13), // Используем LocalDate здесь
+                    status = "Практикант",
+                    discord = "Test",
+                    email = "example@gmail.com",
+                    telegram = "test",
+                    loginable = true
+                )
+            )
         }
     }
 }
