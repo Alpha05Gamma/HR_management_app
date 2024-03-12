@@ -19,8 +19,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -153,9 +156,9 @@ fun UserUpdateAlertDialog(
     onUserEdited: (User) -> Unit,
     onDismiss: () -> Unit
 ){
-    val emailState = remember { mutableStateOf(user?.email ?: "") }
-    val discordState = remember { mutableStateOf(user?.discord ?: "") }
-    val telegramState = remember { mutableStateOf(user?.telegram ?: "") }
+    var emailState: String by rememberSaveable { mutableStateOf(user.email) }
+    var discordState: String by rememberSaveable { mutableStateOf(user.discord) }
+    var telegramState: String by rememberSaveable { mutableStateOf(user.telegram) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -180,8 +183,10 @@ fun UserUpdateAlertDialog(
                                     fontSize = 12.sp,
                                 )
                             },
-                            value = telegramState.value,
-                            onValueChange = { /* Обработка изменения значения */ },
+                            value = telegramState,
+                            onValueChange = { onTelegramStateChanged ->
+                                telegramState = onTelegramStateChanged
+                            },
                             maxLines = 1,
                             textStyle = TextStyle(
                                 fontSize = 16.sp,
@@ -190,7 +195,7 @@ fun UserUpdateAlertDialog(
                             singleLine = true,
                             placeholder = { Text(text = "Введите ваш телеграмм") },
                             trailingIcon = {
-                                IconButton(onClick = { telegramState.value = ""}) {
+                                IconButton(onClick = { telegramState = ""}) {
                                     Icon(
                                         imageVector = Icons.Rounded.Clear,
                                         contentDescription = "Clear icon"
@@ -208,8 +213,10 @@ fun UserUpdateAlertDialog(
                                     fontSize = 12.sp,
                                 )
                             },
-                            value = emailState.value,
-                            onValueChange = { /* Обработка изменения значения */ },
+                            value = emailState,
+                            onValueChange = { onEmailStateChanged ->
+                                emailState = onEmailStateChanged
+                            },
                             maxLines = 1,
                             textStyle = TextStyle(
                                 fontSize = 16.sp,
@@ -218,7 +225,7 @@ fun UserUpdateAlertDialog(
                             singleLine = true,
                             placeholder = { Text(text = "Введите вашу электронную почту") },
                             trailingIcon = {
-                                IconButton(onClick = { emailState.value = ""}) {
+                                IconButton(onClick = { emailState = ""}) {
                                     Icon(
                                         imageVector = Icons.Rounded.Clear,
                                         contentDescription = "Clear icon"
@@ -232,12 +239,15 @@ fun UserUpdateAlertDialog(
                             modifier = Modifier.fillMaxWidth(),
                             label = {
                                 Text(
-                                    text = "Email",
+                                    text = "Discord",
                                     fontSize = 12.sp,
                                 )
                             },
-                            value = discordState.value,
-                            onValueChange = { /* Обработка изменения значения */ },
+                            value = discordState,
+                            onValueChange = { onStateChanged ->
+                                discordState = onStateChanged
+
+                            },
                             maxLines = 1,
                             textStyle = TextStyle(
                                 fontSize = 16.sp,
@@ -246,7 +256,7 @@ fun UserUpdateAlertDialog(
                             singleLine = true,
                             placeholder = { Text(text = "Введите ваш discordId") },
                             trailingIcon = {
-                                IconButton(onClick = { discordState.value = ""}) {
+                                IconButton(onClick = { discordState = ""}) {
                                     Icon(
                                         imageVector = Icons.Rounded.Clear,
                                         contentDescription = "Clear icon"
@@ -265,12 +275,12 @@ fun UserUpdateAlertDialog(
                 onClick = {
                     val emailRegex = Regex("^\\w+([.-]?\\w+)*@\\w+([.-]?\\w+)*(\\.\\w{2,3})+$")
 
-                    if(emailRegex.matches(emailState.value) && discordState.value.isNotEmpty() && telegramState.value.isNotEmpty()){
+                    if(emailRegex.matches(emailState) && discordState.isNotEmpty() && telegramState.isNotEmpty()){
                         var editedUser = user
 
-                        editedUser.email = emailState.value
-                        editedUser.discord = discordState.value
-                        editedUser.telegram = telegramState.value
+                        editedUser.email = emailState
+                        editedUser.discord = discordState
+                        editedUser.telegram = telegramState
 
                         onUserEdited(editedUser)
                     }
