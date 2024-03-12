@@ -2,12 +2,7 @@ package com.example.hrmanagementapp.models
 
 import java.time.LocalDateTime
 
-class UserListItem(
-    var name: String,
-    var status: String
-)
-
-class NotificationListItem(
+class Notification(
     var type: Int,
     var name: String,
     var desc: String,
